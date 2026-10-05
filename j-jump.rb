@@ -6,23 +6,23 @@ class JJump < Formula
   on_macos do
     depends_on macos: :sequoia
     on_arm do
-      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.33/j-jump-0.0.33-aarch64-apple-darwin.tar.gz"
-      sha256 "853d42e4f7b9897aeac9c3ab497268c0319e8c1e8cc4f2e03a716c42713c617d"
+      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.34/j-jump-0.0.34-aarch64-apple-darwin.tar.gz"
+      sha256 "8b860084098823068746b8829732ad7e61332e7e54406bb186b45cf1f8a43e0f"
     end
     on_intel do
-      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.33/j-jump-0.0.33-x86_64-apple-darwin.tar.gz"
-      sha256 "f12ea2bfb5835bf32b9d5a034407c736cf4bf64b5c5f353b4e05a437faa8a688"
+      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.34/j-jump-0.0.34-x86_64-apple-darwin.tar.gz"
+      sha256 "96fb318305ff17252dd865219351e63d85b0853a49cbed526032906f0a7e622a"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.33/j-jump-0.0.33-aarch64-unknown-linux-musl.tar.gz"
-      sha256 "8ab017b69576d07d397cd7d481223615ce4a41dff3bafc6292c7699a153c032f"
+      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.34/j-jump-0.0.34-aarch64-unknown-linux-musl.tar.gz"
+      sha256 "d2a33606a0358df169db1bc66a1af19d1edf346df529b5f78e75476dc0cb2c2e"
     end
     on_intel do
-      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.33/j-jump-0.0.33-x86_64-unknown-linux-musl.tar.gz"
-      sha256 "1c11e0d35ac070241ccaadbd2fab8bc7aca909e1bd77f53fff0d018ccb1860f0"
+      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.34/j-jump-0.0.34-x86_64-unknown-linux-musl.tar.gz"
+      sha256 "970a139c99065516c19b986dd572fd2894f62ad7278525009b6ff280c08b5fd6"
     end
   end
 
@@ -34,10 +34,11 @@ class JJump < Formula
 
   def caveats
     <<~EOS
-      Activate J-Jump in your shell startup file:
-        Bash: eval "$(jjump init bash)"
-        Zsh:  eval "$(jjump init zsh)"
-        Fish: jjump init fish | source
+      Connect your shell automatically:
+        jjump shell install
+      Open a new terminal afterwards.
+      Optional: --shell bash|zsh|fish, --cmd jump, or --rc /absolute/startup-file.
+      Undo managed integration with: jjump shell uninstall
       First j/ji opens setup. Local-only setup needs no API key.
     EOS
   end
