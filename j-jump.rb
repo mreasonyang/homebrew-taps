@@ -6,23 +6,23 @@ class JJump < Formula
   on_macos do
     depends_on macos: :sequoia
     on_arm do
-      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.38/j-jump-0.0.38-aarch64-apple-darwin.tar.gz"
-      sha256 "e6e07b8cc6d4f7661d11b91943b0713175bfa45a9d05dafa18c1be1bec30a5c2"
+      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.41/j-jump-0.0.41-aarch64-apple-darwin.tar.gz"
+      sha256 "545671c245174567ae82491480afd68e98f97a7a0ab435d9a9f84a1f39a88a2c"
     end
     on_intel do
-      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.38/j-jump-0.0.38-x86_64-apple-darwin.tar.gz"
-      sha256 "ee4a5782fe62ad5ea44c69762e1fdbd09ee8b378925bac2511d033b187a75704"
+      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.41/j-jump-0.0.41-x86_64-apple-darwin.tar.gz"
+      sha256 "1ba684dd2a8f02134bd3ed64088a12c8aa65cc8205bc8596b5be214af25acdeb"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.38/j-jump-0.0.38-aarch64-unknown-linux-musl.tar.gz"
-      sha256 "7e8cdcd72eea69cd788faf992e1afe1fb160ab483b75d429926701dd0b6eca9f"
+      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.41/j-jump-0.0.41-aarch64-unknown-linux-musl.tar.gz"
+      sha256 "3f2feafe2399c9ed8f78f4a927183e93aef0d11a477dfe18d9a9a53b1d9f049d"
     end
     on_intel do
-      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.38/j-jump-0.0.38-x86_64-unknown-linux-musl.tar.gz"
-      sha256 "eacb4131964a0d6c6ddb7fd8bd0884b48905bb224ea97cb3cd7c0dd9470f458d"
+      url "https://github.com/mreasonyang/j-jump/releases/download/v0.0.41/j-jump-0.0.41-x86_64-unknown-linux-musl.tar.gz"
+      sha256 "08c7d67cb73531aa41c5a8218bda206aa734b8ff5753d970d32eee537b57f7c8"
     end
   end
 
