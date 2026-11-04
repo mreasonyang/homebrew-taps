@@ -1,0 +1,38 @@
+name: Update ytmGO cask
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-ytmgo
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Check release validation
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+      - name: Generate cask from the public stable release
+        run: python3 .github/scripts/update_ytmgo.py
+      - name: Commit updated cask
+        shell: bash
+        run: |
+          if git diff --quiet -- Casks/ytmgo.rb && test -z "$(git ls-files --others --exclude-standard Casks/ytmgo.rb)"; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Casks/ytmgo.rb
+          git commit -m 'Update ytmGO cask from verified stable release'
+          git push
