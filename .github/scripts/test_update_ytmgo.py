@@ -11,16 +11,18 @@ import update_ytmgo as updater
 
 class ReleaseValidationTests(unittest.TestCase):
     def setUp(self):
-        self.version = "0.6.3"
+        self.version = "0.6.4"
         self.commit = "a" * 40
-        self.archive = "ytmgo-0.6.3-arm64-notarized.zip"
+        self.archive = "ytmgo-0.6.4-arm64-notarized.zip"
         self.metadata = {"version": self.version, "architecture": "arm64", "mode": "notarized",
-                         "minimum_macos": "27.0", "commit": self.commit,
+                         "minimum_macos": "13.0", "commit": self.commit,
                          "developer_id_signed": True, "notarized": True, "signed_updates": True}
         self.refresh()
 
     def refresh(self):
-        files = {"build.json": json.dumps(self.metadata).encode(), self.archive: b"synthetic archive"}
+        files = {"build.json": json.dumps(self.metadata).encode(), self.archive: b"synthetic archive",
+                 "build-amd64.json": json.dumps(dict(self.metadata, architecture="amd64")).encode(),
+                 "ytmgo-0.6.4-amd64-notarized.zip": b"synthetic Intel archive"}
         files["SHA256SUMS"] = "".join(hashlib.sha256(data).hexdigest() + "  " + name + "\n"
                                       for name, data in files.items()).encode()
         prefix = updater.BASE + "v" + self.version + "/"
@@ -33,10 +35,13 @@ class ReleaseValidationTests(unittest.TestCase):
 
     def test_verified_release_renders_pinned_cask(self):
         content = updater.render(self.release, self.files.__getitem__)
-        self.assertIn('version "0.6.3"', content)
-        self.assertIn('sha256 "' + hashlib.sha256(b"synthetic archive").hexdigest() + '"', content)
+        self.assertIn('version "0.6.4"', content)
+        self.assertIn('sha256 arm:   "' + hashlib.sha256(b"synthetic archive").hexdigest() + '"', content)
         self.assertIn('app "ytmGO.app"', content)
         self.assertNotIn("no_check", content)
+        self.assertIn('intel: "amd64"', content)
+        self.assertIn('depends_on macos: :ventura', content)
+        self.assertIn(hashlib.sha256(b"synthetic Intel archive").hexdigest(), content)
 
     def test_unpublished_prerelease_and_unsafe_versions_are_rejected(self):
         for changes in ({"draft": True}, {"prerelease": True}, {"tag_name": "v0.6.3-rc.1"},
@@ -70,12 +75,18 @@ class ReleaseValidationTests(unittest.TestCase):
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 updater.render(release, self.files.__getitem__)
 
+    def test_missing_intel_artifact_is_rejected(self):
+        release = copy.deepcopy(self.release)
+        release["assets"] = [asset for asset in release["assets"] if asset["name"] != "ytmgo-0.6.4-amd64-notarized.zip"]
+        with self.assertRaises(KeyError):
+            updater.render(release, self.files.__getitem__)
+
     def test_downgrade_does_not_write_existing_cask(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             path = root / "Casks/ytmgo.rb"
             path.parent.mkdir()
-            path.write_text('cask "ytmgo" do\n  version "0.6.4"\nend\n')
+            path.write_text('cask "ytmgo" do\n  version "0.6.5"\nend\n')
             before = path.read_bytes()
             with patch.object(updater, "ROOT", root), patch.object(updater, "fetch", return_value=json.dumps(self.release).encode()):
                 with self.assertRaisesRegex(ValueError, "downgrade"):

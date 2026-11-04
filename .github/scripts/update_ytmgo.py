@@ -25,7 +25,7 @@ def release_version(release):
     if release.get("draft") is not False or release.get("prerelease") is not False or not tag.startswith("v"):
         raise ValueError("stable_public_release_required")
     version = tag[1:]
-    if not VERSION.fullmatch(version) or int(version.split(".")[2]) < 3:
+    if not VERSION.fullmatch(version) or int(version.split(".")[2]) < 4:
         raise ValueError("unsupported_release_version")
     return version
 
@@ -33,7 +33,6 @@ def release_version(release):
 def render(release, get=fetch):
     version = release_version(release)
     assets = {asset["name"]: asset for asset in release["assets"]}
-    archive = "ytmgo-" + version + "-arm64-notarized.zip"
     prefix = BASE + "v" + version + "/"
 
     def asset(name, download=False):
@@ -50,27 +49,35 @@ def render(release, get=fetch):
             raise ValueError("release_metadata_checksum_mismatch")
         return data
 
-    metadata = json.loads(asset("build.json", True))
-    if (metadata.get("version") != version or metadata.get("architecture") != "arm64"
-            or metadata.get("mode") != "notarized" or metadata.get("minimum_macos") != "27.0"
-            or not re.fullmatch(r"[0-9a-f]{40}", metadata.get("commit", ""))
-            or metadata["commit"] != release.get("target_commitish")
-            or any(metadata.get(key) is not True for key in ("developer_id_signed", "notarized", "signed_updates"))):
-        raise ValueError("matching_signed_notarized_release_required")
+    metadata_names = {"arm64": "build.json", "amd64": "build-amd64.json"}
+    for arch, name in metadata_names.items():
+        metadata = json.loads(asset(name, True))
+        if (metadata.get("version") != version or metadata.get("architecture") != arch
+                or metadata.get("mode") != "notarized" or metadata.get("minimum_macos") != "13.0"
+                or not re.fullmatch(r"[0-9a-f]{40}", metadata.get("commit", ""))
+                or metadata["commit"] != release.get("target_commitish")
+                or any(metadata.get(key) is not True for key in ("developer_id_signed", "notarized", "signed_updates"))):
+            raise ValueError("matching_signed_notarized_release_required")
     checksums = {}
     for line in asset("SHA256SUMS", True).decode().splitlines():
         match = re.fullmatch(r"([0-9a-f]{64})  ([A-Za-z0-9._-]+)", line)
         if not match or match[2] in checksums:
             raise ValueError("invalid_release_checksums")
         checksums[match[2]] = match[1]
-    digest = asset(archive)
-    if checksums.get(archive) != digest or checksums.get("build.json") != asset("build.json"):
-        raise ValueError("release_checksum_mismatch")
+    digests = {}
+    for arch, name in metadata_names.items():
+        archive = "ytmgo-" + version + "-" + arch + "-notarized.zip"
+        digests[arch] = asset(archive)
+        if checksums.get(archive) != digests[arch] or checksums.get(name) != asset(name):
+            raise ValueError("release_checksum_mismatch")
     return '''cask "ytmgo" do
-  version "%s"
-  sha256 "%s"
+  arch arm: "arm64", intel: "amd64"
 
-  url "https://github.com/mreasonyang/ytmgo/releases/download/v#{version}/ytmgo-#{version}-arm64-notarized.zip"
+  version "%s"
+  sha256 arm:   "%s",
+         intel: "%s"
+
+  url "https://github.com/mreasonyang/ytmgo/releases/download/v#{version}/ytmgo-#{version}-#{arch}-notarized.zip"
   name "ytmGO"
   desc "Native YouTube Music desktop client"
   homepage "https://github.com/mreasonyang/ytmgo"
@@ -81,14 +88,13 @@ def render(release, get=fetch):
   end
 
   auto_updates true
-  depends_on arch: :arm64
-  depends_on macos: :golden_gate
+  depends_on macos: :ventura
 
   app "ytmGO.app"
 
   uninstall quit: "si.kyun.ytmgo"
 end
-''' % (version, digest)
+''' % (version, digests["arm64"], digests["amd64"])
 
 
 def main():

@@ -1,0 +1,45 @@
+name: Verify native ytmGO Homebrew installation
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Public ytmGO release matching the cask
+        required: true
+        default: v0.6.4
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: xcode-27
+            arch: arm64
+          - os: macos-15-intel
+            arch: amd64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: mreasonyang/ytmgo
+          ref: ${{ inputs.release_tag }}
+          persist-credentials: false
+      - name: Install the public cask on the native architecture
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: |
+          brew tap mreasonyang/taps
+          brew install --cask mreasonyang/taps/ytmgo
+      - name: Verify native app, helpers, signatures and deployment targets
+        run: python3 scripts/release/macos_compat.py --app /Applications/ytmGO.app --arch ${{ matrix.arch }} --smoke --signed --receipt dist/homebrew-${{ matrix.arch }}.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ytmgo-homebrew-${{ matrix.arch }}
+          path: dist/homebrew-${{ matrix.arch }}.json
+          if-no-files-found: error
