@@ -1,9 +1,9 @@
 cask "ytmgo" do
   arch arm: "arm64", intel: "amd64"
 
-  version "0.6.5"
-  sha256 arm:   "73c3fb83a6a99523c38cd117c018ec74fa301c829a846f283490f6bf7d5a982a",
-         intel: "f5f2c13a258310d52ed8785335d7dfb644d9d448c7924e7766d4d62f45184799"
+  version "0.6.6"
+  sha256 arm:   "a32960af02345eb4de9db76f6b6eb34fda807e5ae07606c5198ab5919a8a4964",
+         intel: "7b83191e830520ce815ac2bed9a984b84564e96f2401c2d9b5472956d8c6b87b"
 
   url "https://github.com/mreasonyang/ytmgo/releases/download/v#{version}/ytmgo-#{version}-#{arch}-notarized.zip"
   name "ytmGO"
