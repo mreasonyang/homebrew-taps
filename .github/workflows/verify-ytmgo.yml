@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Public ytmGO release matching the cask
         required: true
-        default: v0.6.4
+        default: v0.0.61
         type: string
 
 permissions:

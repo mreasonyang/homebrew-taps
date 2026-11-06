@@ -13,7 +13,7 @@ class ReleaseValidationTests(unittest.TestCase):
     def setUp(self):
         self.version = "0.6.4"
         self.commit = "a" * 40
-        self.archive = "ytmgo-0.6.4-arm64-notarized.zip"
+        self.archive = "ytmgo-" + self.version + "-arm64-notarized.zip"
         self.metadata = {"version": self.version, "architecture": "arm64", "mode": "notarized",
                          "minimum_macos": "13.0", "commit": self.commit,
                          "developer_id_signed": True, "notarized": True, "signed_updates": True}
@@ -22,7 +22,7 @@ class ReleaseValidationTests(unittest.TestCase):
     def refresh(self):
         files = {"build.json": json.dumps(self.metadata).encode(), self.archive: b"synthetic archive",
                  "build-amd64.json": json.dumps(dict(self.metadata, architecture="amd64")).encode(),
-                 "ytmgo-0.6.4-amd64-notarized.zip": b"synthetic Intel archive"}
+                 "ytmgo-" + self.version + "-amd64-notarized.zip": b"synthetic Intel archive"}
         files["SHA256SUMS"] = "".join(hashlib.sha256(data).hexdigest() + "  " + name + "\n"
                                       for name, data in files.items()).encode()
         prefix = updater.BASE + "v" + self.version + "/"
@@ -92,6 +92,44 @@ class ReleaseValidationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "downgrade"):
                     updater.main()
             self.assertEqual(path.read_bytes(), before)
+
+    def test_numbering_reset_renders_verified_assets_and_updates_existing_cask(self):
+        self.version = "0.0.61"
+        self.archive = "ytmgo-" + self.version + "-arm64-notarized.zip"
+        self.metadata["version"] = self.version
+        self.refresh()
+        render = updater.render
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "Casks/ytmgo.rb"
+            path.parent.mkdir()
+            path.write_text('cask "ytmgo" do\n  version "0.6.10"\nend\n')
+            def get(url, limit=65536):
+                if url.endswith("/releases/latest"):
+                    return json.dumps(self.release).encode()
+                return self.files[url]
+            with patch.object(updater, "ROOT", root), patch.object(updater, "fetch", side_effect=get), \
+                    patch.object(updater, "render", side_effect=lambda release: render(release, get)), \
+                    patch("builtins.print"):
+                updater.main()
+            self.assertIn('version "0.0.61"', path.read_text())
+
+    def test_numbering_reset_does_not_allow_other_downgrades(self):
+        release = dict(self.release, tag_name="v0.0.61")
+        for current in ("0.6.9", "0.0.62"):
+            with self.subTest(current=current), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                path = root / "Casks/ytmgo.rb"
+                path.parent.mkdir()
+                path.write_text('cask "ytmgo" do\n  version "' + current + '"\nend\n')
+                before = path.read_bytes()
+                with patch.object(updater, "ROOT", root), \
+                        patch.object(updater, "fetch", return_value=json.dumps(release).encode()), \
+                        patch.object(updater, "render") as render:
+                    with self.assertRaisesRegex(ValueError, "downgrade"):
+                        updater.main()
+                render.assert_not_called()
+                self.assertEqual(path.read_bytes(), before)
 
 
 if __name__ == "__main__":

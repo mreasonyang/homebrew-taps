@@ -8,7 +8,7 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "mreasonyang/ytmgo"
 BASE = "https://github.com/" + REPO + "/releases/download/"
-VERSION = re.compile(r"0\.6\.(?:0|[1-9][0-9]{0,2})")
+VERSION = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]{0,2})")
 
 
 def fetch(url, limit=65536):
@@ -25,7 +25,10 @@ def release_version(release):
     if release.get("draft") is not False or release.get("prerelease") is not False or not tag.startswith("v"):
         raise ValueError("stable_public_release_required")
     version = tag[1:]
-    if not VERSION.fullmatch(version) or int(version.split(".")[2]) < 4:
+    if not VERSION.fullmatch(version):
+        raise ValueError("unsupported_release_version")
+    parts = tuple(map(int, version.split(".")))
+    if parts < (0, 6, 4) and not ((0, 0, 61) <= parts < (0, 1, 0)):
         raise ValueError("unsupported_release_version")
     return version
 
@@ -105,7 +108,10 @@ def main():
         current = re.search(r'^  version "([^"]+)"$', path.read_text(), re.MULTILINE)
         if not current or not VERSION.fullmatch(current[1]):
             raise ValueError("unsupported_existing_cask")
-        if int(version.split(".")[2]) < int(current[1].split(".")[2]):
+        incoming = tuple(map(int, version.split(".")))
+        installed = tuple(map(int, current[1].split(".")))
+        # The project deliberately restarted its numbering once at 0.0.61.
+        if incoming < installed and (installed, incoming) != ((0, 6, 10), (0, 0, 61)):
             raise ValueError("release_downgrade_refused")
     content = render(release)
     if path.exists() and path.read_text() == content:
