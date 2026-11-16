@@ -1,0 +1,79 @@
+name: Verify KeyPin Homebrew installation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'Casks/keypin.rb'
+      - '.github/scripts/*keypin.py'
+      - '.github/workflows/*keypin.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Casks/keypin.rb'
+      - '.github/scripts/*keypin.py'
+      - '.github/workflows/*keypin.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  release-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+
+  install:
+    needs: release-validation
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_ANALYTICS: '1'
+      HOMEBREW_NO_ASK: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Tap the exact revision under test
+        run: brew tap mreasonyang/taps "$GITHUB_WORKSPACE"
+      - name: Install the Universal app and CLI
+        run: brew install --cask mreasonyang/taps/keypin
+      - name: Check cask style and metadata
+        run: |
+          brew style --cask mreasonyang/taps/keypin
+          brew audit --cask --online mreasonyang/taps/keypin
+      - name: Verify native CLI, Universal architectures and Apple signing
+        run: |
+          set -euo pipefail
+          app=/Applications/KeyPin.app
+          keypin help
+          test "$(readlink "$(brew --prefix)/bin/keypin")" = "$app/Contents/MacOS/keypin"
+          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/keypin"
+          codesign --verify --deep --strict "$app"
+          codesign -dv "$app" 2>&1 | grep -Fx 'TeamIdentifier=2V4TX79LUZ'
+          spctl --assess --type execute --verbose=2 "$app"
+          xcrun stapler validate "$app"
+      - name: Verify reinstall and uninstall preserve user configuration
+        run: |
+          set -euo pipefail
+          config="$HOME/Library/Application Support/KeyPin"
+          mkdir -p "$config"
+          printf '%s\n' '{"homebrewInstallTest":true}' > "$config/homebrew-test.json"
+          brew reinstall --cask mreasonyang/taps/keypin
+          keypin help
+          brew uninstall --cask mreasonyang/taps/keypin
+          test ! -e /Applications/KeyPin.app
+          test ! -L "$(brew --prefix)/bin/keypin"
+          test -f "$config/homebrew-test.json"
