@@ -58,9 +58,13 @@ jobs:
         run: |
           set -euo pipefail
           app=/Applications/KeyPin.app
-          keypin help
-          test "$(readlink "$(brew --prefix)/bin/keypin")" = "$app/Contents/MacOS/keypin"
-          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/keypin"
+          keypin help > "$RUNNER_TEMP/keypin-help.txt"
+          "$app/Contents/MacOS/keypin" help > "$RUNNER_TEMP/keypin-direct-help.txt"
+          cmp "$RUNNER_TEMP/keypin-help.txt" "$RUNNER_TEMP/keypin-direct-help.txt"
+          ! grep -q '^cli\.usage\.' "$RUNNER_TEMP/keypin-help.txt"
+          test -x "$(brew --prefix)/bin/keypin"
+          lipo "$app/Contents/MacOS/keypin" -verify_arch arm64
+          lipo "$app/Contents/MacOS/keypin" -verify_arch x86_64
           codesign --verify --deep --strict "$app"
           codesign -dv "$app" 2>&1 | grep -Fx 'TeamIdentifier=2V4TX79LUZ'
           spctl --assess --type execute --verbose=2 "$app"

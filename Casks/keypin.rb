@@ -16,7 +16,7 @@ cask "keypin" do
   depends_on macos: :ventura
 
   app "KeyPin.app"
-  binary "#{appdir}/KeyPin.app/Contents/MacOS/keypin"
+  command_wrapper "keypin", executable: "#{appdir}/KeyPin.app/Contents/MacOS/keypin"
 
   uninstall quit: "app.keypin"
 

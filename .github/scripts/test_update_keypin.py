@@ -39,7 +39,7 @@ class KeyPinReleaseTests(unittest.TestCase):
         content = updater.render(self.release, self.files.__getitem__)
         self.assertIn('version "0.0.22"', content)
         self.assertIn('sha256 "' + hashlib.sha256(b"synthetic universal DMG").hexdigest() + '"', content)
-        self.assertIn('binary "#{appdir}/KeyPin.app/Contents/MacOS/keypin"', content)
+        self.assertIn('command_wrapper "keypin", executable: "#{appdir}/KeyPin.app/Contents/MacOS/keypin"', content)
         self.assertNotIn("no_check", content)
 
     def test_drafts_prereleases_and_unsafe_versions_are_rejected(self):
