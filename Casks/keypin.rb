@@ -1,6 +1,6 @@
 cask "keypin" do
-  version "0.0.22"
-  sha256 "d30b54539b4d45d1f350f7d90a7779c005c096c18be2653b2bf322e71b6953a3"
+  version "0.0.23"
+  sha256 "877eff51f546ad5295d07f37c1c137bd6657839698a2ae862684ddbe5a9ffe74"
 
   url "https://github.com/mreasonyang/keypin/releases/download/v#{version}/KeyPin-#{version}-universal.dmg"
   name "KeyPin"
